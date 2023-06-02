@@ -1,38 +1,56 @@
 from middlewares.AES_CBC_256 import SE
-from middlewares.ModifiedPaillier import E,DE
-from charm.core.math.integer import integer
-from charm.schemes.pkenc.pkenc_paillier99 import Pai99
-from charm.toolbox.integergroup import RSAGroup
+from middlewares.ModifiedPaillier import E
+from middlewares.HMAC_SHA_256 import hmac_sha256, int_to_bytes
+import hashlib
+import hmac
 import os
-
-group = RSAGroup()
-
-kkw = ""
-kse = ""
+from time import time
+import random
+import json
+from base64 import b64encode
 with open('key/IOTgateway_key.txt', 'r') as f:
     data = f.read()
     exec(data)
-with open('key/public_key.txt','r') as f:
+with open('key/public_key.txt', 'r') as f:
     data = f.read()
     exec(data)
-#Modified Paillier Parameters
-n = integer(n)
-h = integer(h) % n
-g = integer(g) % n
-pk = {'n' : n, 'h': h, 'g':g}
-m = 987987987987
-# print(E(pk,m))
-skp1 = 8313148567395234700086848005020123598265375649978412457682952418505438259183876369627632026705305989840281883772855430143394937399990821481837501243245948496664709278931588664466185170356862631763986756820682416660319892877961800201222130299006012577254458217081623985694452072863890284638324098452546246568070121186492604944806714505786389306660473559712038183745227008671977652841311311294494543169803493627920243867881060020758189067874047661359338221892308599219225408800744518959373631031670014448454858288823151628027878538451184553395524080209300478756910278160209931589516018038415564060778040057724862255951
-skp2 = 16662933233768798603607772855582497722361947056094766962982476949746398384089180008809059842206242075528724243942216264506707009951588607625985317567561386984960399150733336814853681370579566976885638710071861468167344106617810234598702796909605764666938113333610343941787918675224812569847607619606122695434810061349284123390249724978579306805429286779116791683258349621876388173158061093601532138372753915522120130683482523390649421788576300429484050189002037474001254280867554066489903801270359364829019871202088188809762029655789186471546581788091611741895102585724989077568537580149242571507851297816816887332319
-skp1 = integer(skp1) % n
-skp2 = integer(skp2) % n
-skp = skp1 + skp2
-DE(pk,skp1,E(pk,m))
+# Modified Paillier Parameters
+pk = {'n': n, 'h': h, 'g': g}
 
-#Secure Symmetric Encryption Parameters
-kkw = bytes.fromhex(kkw)
-kse = bytes.fromhex(kse)
-iv = os.urandom(16)
-SE = SE(iv, kse)
+# print(d)
+# Secure Symmetric Encryption Parameters
+key = bytes.fromhex(kkw)
+kkw, iv = key[0:32], key[32:]
+key = bytes.fromhex(kse)
+kse, iv = key[0:32], key[32:]
 
 
+f = []
+w = []
+id = 1
+fo = open('DataSet/SA.txt', 'w+')
+with open('DataSet/PHI.csv', 'r') as fi:
+    for fv in fi.readlines():
+        w = [i.encode() for i in fv.strip().split(',')]
+        fv = fv.strip().replace(',', '').encode()
+        # Tv = str(time()).encode()
+        Mac = hmac_sha256(k, fv)
+        fvq = Mac + fv
+        Cv = SE(iv, kse).Enc(fvq)
+        Cw = [SE(iv, kkw).Enc(wi) for wi in w]
+        # print(Cw)
+        Ew = [E(pk, wi) for wi in w]
+        # print(Ew)
+        mac = hmac_sha256(t0, Cv + b','.join(Cw) +
+                          b','.join(json.dumps(wi).encode() for wi in Ew))
+        data = {'Cv': b64encode(Cv).decode(), 'Cw': b64encode(
+            b','.join(Cw)).decode(), 'Ew': b64encode(b','.join(json.dumps(wi).encode() for wi in Ew)).decode(), 'id': id, 'mac': b64encode(mac).decode()}
+        # print(data)
+        fo.write(json.dumps(data) + '\n')
+        # break
+        # print(H)
+        # if (id == 100):
+        #     break
+        print(id)
+        id += 1
+# print(w)

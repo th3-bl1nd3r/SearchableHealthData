@@ -1,36 +1,30 @@
-from charm.core.math.integer import integer
-from charm.toolbox.integergroup import RSAGroup
+import random
+from middlewares.Conversion import bytes_to_int
 
-def E(pk,m):
-    group = RSAGroup()
-    n = pk['n']
-    n2 = n * n
-    h = pk['h']
-    g = pk['g']
-    r = group.random(n)
-    m = integer(m) % n  
-    c1 = integer(1) % n2 + (m % n2) * (n % n2)
-    c1 = c1 * ((h % n2) ** r)
-    c2 = (g % n2) ** r
-    return {'c1' : c1,'c2' : c2}
 
-def DE(pk, sk, c):
-    group = RSAGroup()
+def E(pk, m):
+    m = bytes_to_int(m)
     n = pk['n']
-    n2 = n * n
-    h = pk['h']
     g = pk['g']
+    h = pk['h']
+    r = random.randint(1, n - 1)
+    n2 = n * n
+    c1 = 1 + m * n
+    c1 = (c1 * pow(h, r, n2)) % n2
+    c2 = pow(g, r, n2)
+    return {'c1': c1, 'c2': c2}
+
+
+def DE(pk, skp1, skp2, c):
+    n = pk['n']
+    g = pk['g']
+    h = pk['h']
+    n2 = n * n
     c1 = c['c1']
     c2 = c['c2']
-    sk = integer(sk) % n2
-    c2 = c2 ** sk
-    c1 = c1 / c2
-    m = (c1 - integer(1) % n2)
-    n = n % n2
-
-    inv = (integer(7) % n2) ** ((n2 - 2) % n2)
-    print((integer(7) % n2) * inv)
-    
+    gskp1 = pow(c2, skp1, n2)
+    c1 = (c1 * pow(gskp1, -1, n2)) % n2
+    gskp2 = pow(c2, skp2, n2)
+    c1 = (c1 * pow(gskp2, -1, n2)) % n2
+    m = (c1 - 1) // n
     return m
-    
-    
