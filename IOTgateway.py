@@ -38,19 +38,17 @@ with open('DataSet/PHI.csv', 'r') as fi:
         fvq = Mac + fv
         Cv = SE(iv, kse).Enc(fvq)
         Cw = [SE(iv, kkw).Enc(wi) for wi in w]
-        # print(Cw)
         Ew = [E(pk, wi) for wi in w]
-        # print(Ew)
-        mac = hmac_sha256(t0, Cv + b','.join(Cw) +
+
+        mac = hmac_sha256(t0, Cv + b', '.join(Cw) +
                           b','.join(json.dumps(wi).encode() for wi in Ew))
-        data = {'Cv': b64encode(Cv).decode(), 'Cw': b64encode(
-            b','.join(Cw)).decode(), 'Ew': b64encode(b','.join(json.dumps(wi).encode() for wi in Ew)).decode(), 'id': id, 'mac': b64encode(mac).decode()}
-        # print(data)
+
+        data = {'Cv': b64encode(Cv).decode(),
+                'Cw': b64encode(b', '.join(Cw)).decode(),
+                'Ew': b64encode(b','.join(json.dumps(wi).encode() for wi in Ew)).decode(),
+                'id': id,
+                'mac': b64encode(mac).decode()}
         fo.write(json.dumps(data) + '\n')
-        # break
-        # print(H)
-        # if (id == 100):
-        #     break
         print(id)
         id += 1
 # print(w)
