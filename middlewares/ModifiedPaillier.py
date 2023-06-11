@@ -1,30 +1,55 @@
 import random
-from middlewares.Conversion import bytes_to_int
+from middlewares.Conversion import bytes_to_int, int_to_bytes
+from gmpy2 import *
+rs = gmpy2.random_state(hash(gmpy2.random_state()))
 
 
 def E(pk, m):
-    m = bytes_to_int(m)
-    n = pk['n']
-    g = pk['g']
-    h = pk['h']
-    r = random.randint(1, n - 1)
-    n2 = n * n
-    c1 = 1 + m * n
-    c1 = (c1 * pow(h, r, n2)) % n2
-    c2 = pow(g, r, n2)
-    return {'c1': c1, 'c2': c2}
+    n2 = pk['n'] * pk['n']
+    m = mpz(m)
+    r = mpz_random(rs, pk['n'])
+    c1 = t_mod(1 + m * pk['n'], n2)
+    c1 = t_mod(c1 * powmod(pk['h'], r, n2), n2)
+    c2 = powmod(pk['g'], r, n2)
+    return {'c1': int(c1), 'c2': int(c2)}
 
 
-def DE(pk, skp1, skp2, c):
-    n = pk['n']
-    g = pk['g']
-    h = pk['h']
-    n2 = n * n
-    c1 = c['c1']
-    c2 = c['c2']
-    gskp1 = pow(c2, skp1, n2)
-    c1 = (c1 * pow(gskp1, -1, n2)) % n2
-    gskp2 = pow(c2, skp2, n2)
-    c1 = (c1 * pow(gskp2, -1, n2)) % n2
-    m = (c1 - 1) // n
-    return m
+def oppoE(pk, m):
+    n2 = pk['n'] * pk['n']
+    m = mpz(-m)
+    r = mpz_random(rs, pk['n'])
+    c1 = t_mod(1 + m * pk['n'], n2)
+    c1 = t_mod(c1 * powmod(pk['h'], r, n2), n2)
+    c2 = powmod(pk['g'], r, n2)
+    return {'c1': int(c1), 'c2': int(c2)}
+
+
+def DE(pk, skp, c):
+    n2 = pk['n'] * pk['n']
+
+    gskp = powmod(c['c2'], skp, n2)
+    c1 = t_mod(c['c1'] * powmod(gskp, -1, n2), n2)
+    c1 = (c1 - 1) // pk['n']
+    return int(c1)
+
+
+def DEp1(pk, skp, c):
+    n2 = pk['n'] * pk['n']
+    gskp = powmod(c['c2'], skp, n2)
+    c1 = t_mod(c['c1'] * powmod(gskp, -1, n2), n2)
+    return {'c1': int(c1), 'c2': int(c['c2'])}
+
+
+def DEp2(pk, skp, c):
+    n2 = pk['n'] * pk['n']
+    gskp = powmod(c['c2'], skp, n2)
+    c1 = t_mod(c['c1'] * powmod(gskp, -1, n2), n2)
+    c1 = (c1 - 1) // pk['n']
+    return int(c1)
+
+
+def _mul_(pk, E1, E2):
+    n2 = pk['n'] * pk['n']
+    c1 = (mpz(E1['c1']) * mpz(E2['c1'])) % n2
+    c2 = (mpz(E1['c2']) * mpz(E2['c2'])) % n2
+    return {'c1': int(c1), 'c2': int(c2)}

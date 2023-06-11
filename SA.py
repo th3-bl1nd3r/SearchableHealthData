@@ -3,6 +3,7 @@ from middlewares.VariantBloomFilter import *
 from pybloom import BloomFilter
 from base64 import b64decode, b64encode
 import json
+
 VBF = BloomFilter(capacity=10000)
 with open('key/CloudServerSA_key.txt', 'r') as f:
     data = f.read()
@@ -11,6 +12,7 @@ with open('key/public_key.txt', 'r') as f:
     data = f.read()
     exec(data)
 TBL = {}
+EncodedFile = {}
 label = 1
 with open('DataSet/SA.txt', 'r') as fi:
     for data in fi.readlines():
@@ -36,6 +38,7 @@ with open('DataSet/SA.txt', 'r') as fi:
                 TBL[b64encode(Cw[i]).decode()]['keyword'] = Ew[i]
                 TBL[b64encode(Cw[i]).decode()]['fileid'] = [id]
                 VBFAdd(VBF, b64encode(Cw[i]).decode())
+        # EncodedFile[id] =
         # if (label == 10):
         #     break
         # print(label)

@@ -3,29 +3,31 @@
 # from charm.toolbox.integergroup import RSAGroup, lcm, gcd, integer, toInt
 import random
 import os
+from gmpy2 import *
 # group = RSAGroup()
 # pai = Pai99(group)
 # public_key, private_key = pai.keygen()
 from Crypto.Util.number import getPrime
+rs = gmpy2.random_state(hash(gmpy2.random_state()))
 
-p = getPrime(1024)
-q = getPrime(1024)
+p = mpz(getPrime(1024))
+q = mpz(getPrime(1024))
 n = p * q
 n2 = n * n
-g = random.randint(1, n - 1)
+g = mpz_random(rs, n2)
 # n2 = public_key['n2']
 # lamda = private_key['lamda']
 # l = gcd(pai.L(((g % n2) ** lamda), n), n)
-t0 = random.randint(1, n - 1)
-k = random.randint(1, n - 1)
+t0 = mpz_random(rs, n)
+k = mpz_random(rs, n)
 while True:
-    skp1 = random.randint(1, n - 1)
-    skp2 = random.randint(1, n - 1)
+    skp1 = mpz_random(rs, n)
+    skp2 = mpz_random(rs, n)
     skp = skp1 + skp2
     if 1 <= skp < n:
         break
 
-h = pow(g, skp, n)
+h = powmod(g, skp, n2)
 
 # SE.GenKey
 kse = random.randbytes(32).hex()
