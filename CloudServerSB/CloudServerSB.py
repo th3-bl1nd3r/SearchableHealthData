@@ -1,3 +1,4 @@
+import ssl
 import json
 import socket
 import threading
@@ -5,14 +6,6 @@ from traceback import print_exception
 from middlewares.Conversion import *
 from middlewares.ModifiedPaillier import *
 from gmpy2 import *
-with open('key/public_key.txt', 'r') as f:
-    data = f.read()
-    exec(data)
-pk = {'n': mpz(n), 'h': mpz(h), 'g': mpz(g)}
-
-with open('key/CloudServerSB_key.txt', 'r') as f:
-    data = f.read()
-    exec(data)
 
 
 def recvuntilendl(client):
@@ -31,33 +24,42 @@ class ThreadedServer(object):
     def __init__(self, host, port):
         self.host = host
         self.port = port
+        context_server = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context_server.load_cert_chain('./new.pem',
+                                       './private.key')
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.host, self.port))
+        self.sock.listen(5)
+        self.s_sock = context_server.wrap_socket(self.sock, server_side=True)
 
     def listen(self):
-        self.sock.listen()
         while True:
-            client, address = self.sock.accept()
+            client, address = self.s_sock.accept()
             client.settimeout(60)
             threading.Thread(target=self.listenToClient,
                              args=(client, address)).start()
 
     def listenToClient(self, client, address):
-        size = 1024
         try:
             while True:
                 data = recvuntilendl(client)
+                # print(data)
                 if data:
                     # Set the response to echo back the recieved data
                     # print(data)
                     if (data.decode() == 'DataUser'):
                         data = recvuntilendl(client).decode()
                         data = json.loads(data)
-                        sa = socket.socket(
-                            socket.AF_INET, socket.SOCK_STREAM)
+                        context_client = ssl.SSLContext(
+                            ssl.PROTOCOL_TLS_CLIENT)
+                        context_client.load_verify_locations(
+                            './new.pem')
+                        sa = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        sa = context_client.wrap_socket(
+                            sa, server_hostname='localhost')
                         sa.connect(('localhost', 2808))  # Connect to SA
-                        print(type(data))
+
                         if type(data) == type({}):
                             a = []
                             r = data['r']
@@ -91,13 +93,20 @@ class ThreadedServer(object):
                             (json.dumps(result) + '\n').encode())
                         # print(result)
                         sa.close()
+                    elif data.decode() == 'TrustAuthority':
+                        data = recvuntilendl(
+                            client).decode().replace(',', '\n')
 
-                    else:
-                        if data.decode() == 'CloudServerSB':
-                            data = recvuntilendl(client)
+                        exec(data, globals(), globals())
+
+                        # pk = {'n': mpz(n), 'h': mpz(h), 'g': mpz(g)}
+                        exec(
+                            "pk = {'n': mpz(n), 'h': mpz(h), 'g': mpz(g)}", globals(), globals())
+                        # print(pk)
                 else:
                     raise Exception('Client disconnected')
         except Exception as e:
+            # print_exception(e)
             print('Client disconnected')
             client.close()
 

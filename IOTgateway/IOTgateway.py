@@ -1,3 +1,4 @@
+import ssl
 from gmpy2 import *
 from middlewares.AES_CBC_256 import SE
 from middlewares.ModifiedPaillier import E
@@ -11,12 +12,29 @@ import time
 import random
 import json
 from base64 import b64encode
-with open('key/IOTgateway_key.txt', 'r') as f:
-    data = f.read()
-    exec(data)
-with open('key/public_key.txt', 'r') as f:
-    data = f.read()
-    exec(data)
+
+
+def recvuntilendl(client):
+    res = b''
+    while (True):
+        ch = client.recv(1)
+        if not ch:
+            break
+        if (ch == b'\n'):
+            break
+        res += ch
+    return res
+
+
+context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+context.load_verify_locations('./new.pem')
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s = context.wrap_socket(s, server_hostname='localhost')
+s.connect(('localhost', 2810))
+s.sendall(b"IOTgateway\n")
+data = recvuntilendl(s).decode().replace(',', '\n')
+exec(data)
 # Modified Paillier Parameters
 pk = {'n': mpz(n), 'h': mpz(h), 'g': mpz(g)}
 
@@ -43,10 +61,13 @@ vitalsigns = [b"age",
               b"is_patient"]
 
 # fo = open('DataSet/SA.txt', 'w+')
+
+
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s = context.wrap_socket(s, server_hostname='localhost')
 s.connect(('localhost', 2808))
-with open('DataSet/PHI.csv', 'r') as fi:
-    for fv in fi.readlines():
+with open('PHI.csv', 'r') as fi:
+    for fv in fi.readlines()[:20]:
         w = [i.encode() for i in fv.strip().split(',')]
 
         fv = fv.strip().encode()
