@@ -16,14 +16,6 @@ import threading
 vitalsigns = ["age", "gender", "tot_bilirubin", "direct_bilirubin", "alkphos",
               "sgpt", "sgot", "tot_proteins", "albumin", "ag_ratio", "is_patient"]
 
-# with open('key/public_key.txt', 'r') as f:
-#     data = f.read()
-#     exec(data)
-# pk = {'n': mpz(n), 'h': mpz(h), 'g': mpz(g)}
-# with open('key/DataUser_key.txt', 'r') as f:
-#     data = f.read()
-#     exec(data)
-
 
 def recvuntilendl(client):
     res = b''
@@ -46,7 +38,7 @@ s.connect(('localhost', 2810))
 s.sendall(b"DataUser\n")
 data = recvuntilendl(s).decode().replace(',', '\n')
 exec(data)
-
+s.close()
 pk = {'n': mpz(n), 'h': mpz(h), 'g': mpz(g)}
 
 key = bytes.fromhex(kse)
@@ -73,9 +65,11 @@ def decode_result(result):
 
 def multi_keyword_search(k: list):
 
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.load_verify_locations('./newSB.pem')
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s = context.wrap_socket(s, server_hostname='localhost')
-    s.connect(('localhost', 2809))
+    s = context.wrap_socket(s, server_hostname='cloudsbshd.duckdns.org')
+    s.connect(('cloudsbshd.duckdns.org', 2809))
     query = []
     for ki in k:
         query.append(oppoE(pk, prepare_keyword(
@@ -90,10 +84,12 @@ def multi_keyword_search(k: list):
 
 def keyword_range_search(index, k1, k2):
 
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.load_verify_locations('./newSB.pem')
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s = context.wrap_socket(s, server_hostname='localhost')
+    s = context.wrap_socket(s, server_hostname='cloudsbshd.duckdns.org')
+    s.connect(('cloudsbshd.duckdns.org', 2809))
 
-    s.connect(('localhost', 2809))
     r = abs(prepare_keyword(k2) - prepare_keyword(k1))
     Esw = oppoE(pk, prepare_keyword(
         vitalsigns[index].encode()) + prepare_keyword(k1))
